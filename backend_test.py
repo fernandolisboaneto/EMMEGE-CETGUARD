@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CertGuard AI Backend API Testing Suite
+CertGuard AI Backend API Testing Suite v2.0
 Tests all endpoints for the revolutionary certificate management system with AI
 """
 
@@ -16,6 +16,8 @@ class CertGuardAPITester:
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
         self.tests_passed = 0
+        self.token = None
+        self.created_user_id = None
         self.created_cert_id = None
         
     def log_test(self, name: str, success: bool, details: str = ""):
@@ -28,10 +30,13 @@ class CertGuardAPITester:
             print(f"❌ {name} - FAILED {details}")
         return success
 
-    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, expected_status: int = 200) -> tuple[bool, Dict]:
+    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, expected_status: int = 200, auth_required: bool = False) -> tuple[bool, Dict]:
         """Make HTTP request and validate response"""
         url = f"{self.api_url}/{endpoint.lstrip('/')}"
         headers = {'Content-Type': 'application/json'}
+        
+        if auth_required and self.token:
+            headers['Authorization'] = f'Bearer {self.token}'
         
         try:
             if method.upper() == 'GET':
