@@ -699,14 +699,14 @@ const UserManagement = () => {
                 onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                <option value="user">Usuário</option>
                 {user?.role === 'super_admin' && (
                   <option value="admin">Admin</option>
                 )}
-                <option value="user">Usuário</option>
               </select>
             </div>
             {(user?.role === 'super_admin' && newUser.role === 'admin') && (
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Organização *
                 </label>
@@ -721,6 +721,11 @@ const UserManagement = () => {
                     <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
                 </select>
+                {organizations.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Carregando organizações...
+                  </p>
+                )}
               </div>
             )}
             <div className="md:col-span-2">
