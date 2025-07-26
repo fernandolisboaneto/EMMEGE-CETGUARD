@@ -764,6 +764,11 @@ const UserManagement = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {user.organization_id ? getOrganizationName(user.organization_id) : 'Sem organização'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
