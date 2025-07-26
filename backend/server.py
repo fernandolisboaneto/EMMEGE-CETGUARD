@@ -463,12 +463,20 @@ async def get_dashboard_stats():
     # Get recent activities
     recent_activities = await db.audit_logs.find().sort("timestamp", -1).limit(10).to_list(10)
     
+    # Convert ObjectId to string for JSON serialization
+    for activity in recent_activities:
+        if "_id" in activity:
+            del activity["_id"]
+        # Convert datetime to string for JSON serialization
+        if "timestamp" in activity and isinstance(activity["timestamp"], datetime):
+            activity["timestamp"] = activity["timestamp"].isoformat()
+    
     return {
         "total_certificates": total_certs,
         "active_certificates": active_certs,
         "expiring_soon": expiring_soon,
         "recent_activities": recent_activities,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 # Include the router in the main app
