@@ -685,6 +685,24 @@ const UserManagement = () => {
                 <option value="user">Usuário</option>
               </select>
             </div>
+            {(user?.role === 'super_admin' && newUser.role === 'admin') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Organização *
+                </label>
+                <select
+                  value={newUser.organization_id}
+                  onChange={(e) => setNewUser({...newUser, organization_id: e.target.value})}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione uma organização</option>
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="md:col-span-2">
               <button
                 type="submit"
