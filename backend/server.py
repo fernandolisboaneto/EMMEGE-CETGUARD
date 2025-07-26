@@ -649,6 +649,141 @@ async def logout(request: Request, current_user: User = Depends(get_current_user
     )
     return {"message": "Logged out successfully"}
 
+# Organization Management Routes
+@api_router.post("/organizations", response_model=Organization)
+async def create_organization(
+    org_data: OrganizationCreate,
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """Create new organization (Super Admin only)"""
+    
+    if current_user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Super Admin can create organizations")
+    
+    # Check if organization already exists
+    existing_org = await db.organizations.find_one({"name": org_data.name})
+    if existing_org:
+        raise HTTPException(status_code=400, detail="Organization with this name already exists")
+    
+    # Create organization
+    org_dict = org_data.dict()
+    org_dict["created_by"] = current_user.id
+    
+    org_obj = Organization(**org_dict)
+    await db.organizations.insert_one(org_obj.dict())
+    
+    # Log organization creation
+    await log_user_activity(
+        current_user.id,
+        ActionType.LOGIN,  # Using LOGIN as placeholder
+        request,
+        action_details={"created_organization": org_obj.id, "organization_name": org_data.name}
+    )
+    
+    return org_obj
+
+@api_router.get("/organizations", response_model=List[Organization])
+async def get_organizations(
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get organizations (Super Admin sees all, Admin sees their own)"""
+    
+    if current_user.role == UserRole.SUPER_ADMIN:
+        orgs = await db.organizations.find().skip(skip).limit(limit).to_list(limit)
+    elif current_user.role == UserRole.ADMIN:
+        orgs = await db.organizations.find({"id": current_user.organization_id}).skip(skip).limit(limit).to_list(limit)
+    else:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Clean up MongoDB ObjectIds
+    for org in orgs:
+        if "_id" in org:
+            del org["_id"]
+    
+    return [Organization(**org) for org in orgs]
+
+@api_router.get("/organizations/{org_id}", response_model=Organization)
+async def get_organization(
+    org_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get organization by ID"""
+    
+    org = await db.organizations.find_one({"id": org_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Check permissions
+    if current_user.role != UserRole.SUPER_ADMIN and current_user.organization_id != org_id:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    if "_id" in org:
+        del org["_id"]
+    
+    return Organization(**org)
+
+# User Management Routes
+@api_router.post("/users", response_model=User)
+async def create_user(
+    user_data: UserCreate,
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """Create new user with organization support"""
+    
+    # Check permissions and organization requirements
+    if current_user.role == UserRole.SUPER_ADMIN:
+        # Super Admin can create Admin (must assign to organization) or User
+        if user_data.role == UserRole.ADMIN and not user_data.organization_id:
+            raise HTTPException(status_code=400, detail="Admin must be assigned to an organization")
+        elif user_data.role not in [UserRole.ADMIN, UserRole.USER]:
+            raise HTTPException(status_code=403, detail="Super Admin can only create Admin or User accounts")
+    elif current_user.role == UserRole.ADMIN:
+        # Admin can only create Users within their organization
+        if user_data.role != UserRole.USER:
+            raise HTTPException(status_code=403, detail="Admin can only create User accounts")
+        if not current_user.organization_id:
+            raise HTTPException(status_code=400, detail="Admin must belong to an organization")
+        user_data.organization_id = current_user.organization_id  # Force same organization
+    else:
+        raise HTTPException(status_code=403, detail="Users cannot create other accounts")
+    
+    # Validate organization exists if specified
+    if user_data.organization_id:
+        org = await db.organizations.find_one({"id": user_data.organization_id})
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one({"username": user_data.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Create user
+    user_dict = user_data.dict()
+    user_dict["password"] = hash_password(user_data.password)
+    user_dict["created_by"] = current_user.id
+    
+    user_obj = User(**user_dict)
+    await db.users.insert_one(user_obj.dict())
+    
+    # Log user creation
+    await log_user_activity(
+        current_user.id,
+        ActionType.LOGIN,  # Using LOGIN as placeholder for user creation
+        request,
+        action_details={
+            "created_user": user_obj.id, 
+            "user_role": user_data.role,
+            "organization_id": user_data.organization_id
+        }
+    )
+    
+    return user_obj
+
 # User Management Routes
 @api_router.post("/users", response_model=User)
 async def create_user(
