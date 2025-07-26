@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 CertGuard AI Backend API Testing Suite v2.0
-Tests all endpoints for the revolutionary certificate management system with AI
+Tests all CORE endpoints for the revolutionary certificate management system with AI
+Includes: Certificate Import, Assignments, Security Dashboard, AI Analysis, Audit Trail
 """
 
 import requests
 import sys
 import json
+import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
@@ -19,6 +21,7 @@ class CertGuardAPITester:
         self.token = None
         self.created_user_id = None
         self.created_cert_id = None
+        self.site_ids = []
         
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test results"""
