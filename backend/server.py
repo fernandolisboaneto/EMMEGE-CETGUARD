@@ -1065,15 +1065,28 @@ async def startup_event():
     # Create super admin if not exists
     super_admin = await db.users.find_one({"role": "super_admin"})
     if not super_admin:
-        super_admin_user = User(
-            username="superadmin",
-            email="admin@certguard.ai",
-            full_name="Super Administrator",
-            role=UserRole.SUPER_ADMIN,
-            password=hash_password("CertGuard@2025!")
-        )
+        super_admin_data = {
+            "username": "superadmin",
+            "email": "admin@certguard.ai",
+            "full_name": "Super Administrator",
+            "role": UserRole.SUPER_ADMIN,
+            "password": hash_password("CertGuard@2025!"),
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "failed_login_attempts": 0
+        }
+        super_admin_user = User(**super_admin_data)
         await db.users.insert_one(super_admin_user.dict())
         logger.info("Super Admin created with default credentials")
+    
+    # Initialize tribunal sites
+    existing_sites = await db.tribunal_sites.count_documents({})
+    if existing_sites == 0:
+        for site_data in TRIBUNAL_SITES:
+            site = TribunalSite(**site_data)
+            await db.tribunal_sites.insert_one(site.dict())
+        logger.info(f"Initialized {len(TRIBUNAL_SITES)} tribunal sites")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
