@@ -339,6 +339,10 @@ async def create_certificate(cert_data: CertificateCreate, request: Request):
 async def get_certificates(skip: int = 0, limit: int = 100):
     """Get all certificates with pagination"""
     certificates = await db.certificates.find().skip(skip).limit(limit).to_list(limit)
+    # Convert ObjectId to string for JSON serialization
+    for cert in certificates:
+        if "_id" in cert:
+            del cert["_id"]
     return [Certificate(**cert) for cert in certificates]
 
 @api_router.get("/certificates/{certificate_id}", response_model=Certificate)
