@@ -81,7 +81,7 @@ class CertGuardAPITester:
         return self.log_test(
             "Super Admin Login", 
             success and 'access_token' in response,
-            f"Token received: {'Yes' if self.token else 'No'}"
+            f"User: {response.get('user', {}).get('username', 'Unknown')} ({response.get('user', {}).get('role', 'Unknown')})"
         )
 
     def test_create_user(self) -> bool:
