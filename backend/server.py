@@ -351,6 +351,9 @@ async def get_certificate(certificate_id: str):
     cert = await db.certificates.find_one({"id": certificate_id})
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
+    # Convert ObjectId to string for JSON serialization
+    if "_id" in cert:
+        del cert["_id"]
     return Certificate(**cert)
 
 @api_router.post("/certificates/{certificate_id}/predict")
