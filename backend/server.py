@@ -23,7 +23,8 @@ from passlib.context import CryptContext
 import secrets
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, load_pkcs12
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates as load_pkcs12
 from cryptography import x509
 import base64
 import io
