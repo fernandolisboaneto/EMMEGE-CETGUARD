@@ -1,5 +1,5 @@
 // CertGuard AI - Popup Script
-const API_BASE = 'https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com/api';
+const API_BASE = 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com/api';
 
 class CertGuardPopup {
   constructor() {
@@ -167,7 +167,7 @@ class CertGuardPopup {
 
   openLoginPage() {
     chrome.tabs.create({
-      url: 'https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com'
+      url: 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com'
     });
   }
 
@@ -289,7 +289,7 @@ class CertGuardPopup {
     try {
       // Open CertGuard AI dashboard in new tab
       chrome.tabs.create({
-        url: 'https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com'
+        url: 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com'
       });
 
     } catch (error) {

@@ -1,7 +1,7 @@
 // CertGuard AI - Background Script
 class CertGuardBackground {
   constructor() {
-    this.API_BASE = 'https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com/api';
+    this.API_BASE = 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com/api';
     this.activities = [];
     this.isMonitoring = false;
     this.init();
@@ -99,7 +99,7 @@ class CertGuardBackground {
 
     // Open welcome page
     chrome.tabs.create({
-      url: 'https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com'
+      url: 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com'
     });
   }
 

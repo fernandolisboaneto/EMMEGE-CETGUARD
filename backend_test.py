@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
 class CertGuardAPITester:
-    def __init__(self, base_url: str = "https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0

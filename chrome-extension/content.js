@@ -200,7 +200,7 @@ class CertGuardContent {
             font-size: 12px;
             margin-right: 10px;
           ">Fechar</button>
-          <button onclick="window.open('https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com', '_blank')" style="
+          <button onclick="window.open('https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com', '_blank')" style="
             background: #28a745;
             color: white;
             border: none;
