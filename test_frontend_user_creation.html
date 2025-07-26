@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Creation Form</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .org-field {
+            background-color: #fff3cd;
+            border: 2px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Teste de Criação de Usuário com Organizações</h2>
+        
+        <div class="form-group">
+            <label for="loginUsername">Login de Teste (Super Admin):</label>
+            <input type="text" id="loginUsername" value="superadmin" placeholder="Username">
+        </div>
+        
+        <div class="form-group">
+            <label for="loginPassword">Senha:</label>
+            <input type="password" id="loginPassword" value="CertGuard@2025!" placeholder="Password">
+        </div>
+        
+        <button onclick="login()">Login</button>
+        
+        <div id="loginResult"></div>
+        
+        <hr style="margin: 20px 0;">
+        
+        <h3>Criar Novo Usuário</h3>
+        
+        <div class="form-group">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" id="username" placeholder="Digite o nome de usuário">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Digite o email">
+        </div>
+        
+        <div class="form-group">
+            <label for="fullName">Nome Completo:</label>
+            <input type="text" id="fullName" placeholder="Digite o nome completo">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Senha:</label>
+            <input type="password" id="password" placeholder="Digite a senha">
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Função:</label>
+            <select id="role" onchange="toggleOrganizationField()">
+                <option value="user">Usuário</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        
+        <div class="form-group org-field" id="organizationField" style="display: none;">
+            <label for="organization">Organização * (obrigatório para Admin):</label>
+            <select id="organization">
+                <option value="">Selecione uma organização</option>
+            </select>
+        </div>
+        
+        <button onclick="createUser()">Criar Usuário</button>
+        
+        <div id="createResult"></div>
+        
+        <hr style="margin: 20px 0;">
+        
+        <h3>Organizações Disponíveis</h3>
+        <button onclick="loadOrganizations()">Carregar Organizações</button>
+        <div id="organizationsList"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com/api';
+        let authToken = null;
+        let currentUser = null;
+        let organizations = [];
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const response = await axios.post(`${API_BASE}/auth/login`, {
+                    username: username,
+                    password: password
+                });
+                
+                authToken = response.data.access_token;
+                currentUser = response.data.user;
+                
+                axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+                
+                document.getElementById('loginResult').innerHTML = `
+                    <div class="result success">
+                        <strong>Login realizado com sucesso!</strong><br>
+                        Usuário: ${currentUser.username} (${currentUser.role})<br>
+                        Token: ${authToken.substring(0, 20)}...
+                    </div>
+                `;
+                
+                // Carregar organizações automaticamente após login
+                loadOrganizations();
+                
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `
+                    <div class="result error">
+                        <strong>Erro no login:</strong><br>
+                        ${error.response?.data?.detail || error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function loadOrganizations() {
+            if (!authToken) {
+                alert('Faça login primeiro');
+                return;
+            }
+            
+            try {
+                const response = await axios.get(`${API_BASE}/organizations`);
+                organizations = response.data;
+                
+                // Atualizar select de organizações
+                const orgSelect = document.getElementById('organization');
+                orgSelect.innerHTML = '<option value="">Selecione uma organização</option>';
+                
+                organizations.forEach(org => {
+                    const option = document.createElement('option');
+                    option.value = org.id;
+                    option.textContent = org.name;
+                    orgSelect.appendChild(option);
+                });
+                
+                // Mostrar lista de organizações
+                const orgList = organizations.map(org => `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>${org.name}</strong><br>
+                        ID: ${org.id}<br>
+                        CNPJ: ${org.cnpj || 'N/A'}<br>
+                        Email: ${org.email || 'N/A'}
+                    </div>
+                `).join('');
+                
+                document.getElementById('organizationsList').innerHTML = `
+                    <div class="result success">
+                        <strong>Organizações carregadas (${organizations.length}):</strong><br>
+                        ${orgList}
+                    </div>
+                `;
+                
+            } catch (error) {
+                document.getElementById('organizationsList').innerHTML = `
+                    <div class="result error">
+                        <strong>Erro ao carregar organizações:</strong><br>
+                        ${error.response?.data?.detail || error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function toggleOrganizationField() {
+            const role = document.getElementById('role').value;
+            const orgField = document.getElementById('organizationField');
+            
+            if (role === 'admin' && currentUser?.role === 'super_admin') {
+                orgField.style.display = 'block';
+                document.getElementById('organization').required = true;
+            } else {
+                orgField.style.display = 'none';
+                document.getElementById('organization').required = false;
+            }
+        }
+
+        async function createUser() {
+            if (!authToken) {
+                alert('Faça login primeiro');
+                return;
+            }
+            
+            const userData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                full_name: document.getElementById('fullName').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            };
+            
+            // Adicionar organization_id se necessário
+            if (userData.role === 'admin' && currentUser?.role === 'super_admin') {
+                userData.organization_id = document.getElementById('organization').value;
+                if (!userData.organization_id) {
+                    alert('Selecione uma organização para o Admin');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await axios.post(`${API_BASE}/users`, userData);
+                
+                document.getElementById('createResult').innerHTML = `
+                    <div class="result success">
+                        <strong>Usuário criado com sucesso!</strong><br>
+                        ID: ${response.data.id}<br>
+                        Nome: ${response.data.username}<br>
+                        Email: ${response.data.email}<br>
+                        Função: ${response.data.role}<br>
+                        Organização: ${response.data.organization_id || 'N/A'}
+                    </div>
+                `;
+                
+                // Limpar formulário
+                document.getElementById('username').value = '';
+                document.getElementById('email').value = '';
+                document.getElementById('fullName').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('role').value = 'user';
+                document.getElementById('organization').value = '';
+                toggleOrganizationField();
+                
+            } catch (error) {
+                document.getElementById('createResult').innerHTML = `
+                    <div class="result error">
+                        <strong>Erro ao criar usuário:</strong><br>
+                        ${error.response?.data?.detail || error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
