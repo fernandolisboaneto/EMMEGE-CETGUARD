@@ -129,6 +129,7 @@ class UserCreate(BaseModel):
     full_name: str
     password: str
     role: UserRole
+    organization_id: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
