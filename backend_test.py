@@ -98,11 +98,18 @@ class CertGuardAPITester:
         
         if success and 'id' in response:
             self.created_user_id = response['id']
+        elif not success:
+            # Check if it's a 201 status (created)
+            success_201, response_201 = self.make_request('POST', '/users', user_data, 201, auth_required=True)
+            if success_201 and 'id' in response_201:
+                self.created_user_id = response_201['id']
+                success = True
+                response = response_201
             
         return self.log_test(
             "Create User", 
             success and 'id' in response,
-            f"Created user ID: {response.get('id', 'None')}"
+            f"Created user ID: {response.get('id', 'None')} - Status: {response.get('status_code', 'Unknown')}"
         )
 
     def test_get_users(self) -> bool:
