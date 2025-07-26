@@ -47,9 +47,9 @@ class CertGuardAPITester:
         
         try:
             if method.upper() == 'GET':
-                response = requests.get(url, headers=headers, timeout=30)
+                response = requests.get(url, headers=headers, timeout=15)
             elif method.upper() == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=30)
+                response = requests.post(url, json=data, headers=headers, timeout=15)
             else:
                 return False, {"error": f"Unsupported method: {method}"}
             
