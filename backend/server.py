@@ -830,13 +830,18 @@ async def get_users(
     skip: int = 0,
     limit: int = 100
 ):
-    """Get users based on role hierarchy"""
+    """Get users based on role hierarchy and organization"""
     
-    # Super Admin sees all, Admin sees users they created, User sees none
+    # Super Admin sees all users
     if current_user.role == UserRole.SUPER_ADMIN:
         users = await db.users.find().skip(skip).limit(limit).to_list(limit)
+    # Admin sees users in their organization
     elif current_user.role == UserRole.ADMIN:
-        users = await db.users.find({"created_by": current_user.id}).skip(skip).limit(limit).to_list(limit)
+        if not current_user.organization_id:
+            raise HTTPException(status_code=400, detail="Admin must belong to an organization")
+        users = await db.users.find({
+            "organization_id": current_user.organization_id
+        }).skip(skip).limit(limit).to_list(limit)
     else:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
