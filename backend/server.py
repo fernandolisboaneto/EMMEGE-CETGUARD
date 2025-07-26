@@ -137,6 +137,26 @@ class Certificate(BaseModel):
     risk_level: RiskLevel = RiskLevel.LOW
     prediction_score: float = 0.0
 
+class CertificateImport(BaseModel):
+    name: str
+    organization: str
+    password: str
+    file_data: str  # Base64 encoded file data
+    file_name: str
+
+class CertificateAssignment(BaseModel):
+    certificate_id: str
+    user_id: str
+    site_ids: List[str]
+    access_type: str = "full"
+    allowed_hours: Optional[List[str]] = None
+    expires_at: Optional[datetime] = None
+
+class AIAnalysisRequest(BaseModel):
+    analysis_type: str  # "behavior", "risk", "certificate", "security"
+    context: Dict[str, Any] = {}
+    time_range: int = 24  # hours
+
 class TribunalSite(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
