@@ -516,6 +516,7 @@ const OrganizationManagement = () => {
 // User Management Component
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -523,7 +524,8 @@ const UserManagement = () => {
     email: '',
     full_name: '',
     password: '',
-    role: 'user'
+    role: 'user',
+    organization_id: ''
   });
   const { user } = useAuth();
 
@@ -538,6 +540,15 @@ const UserManagement = () => {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const response = await axios.get(`${API}/organizations`);
+      setOrganizations(response.data);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+    }
+  };
+
   const createUser = async (e) => {
     e.preventDefault();
     try {
@@ -547,17 +558,27 @@ const UserManagement = () => {
         email: '',
         full_name: '',
         password: '',
-        role: 'user'
+        role: 'user',
+        organization_id: ''
       });
       setShowCreateForm(false);
       fetchUsers();
+      alert('Usuário criado com sucesso!');
     } catch (error) {
       console.error('Error creating user:', error);
+      alert('Erro ao criar usuário: ' + (error.response?.data?.detail || error.message));
     }
+  };
+
+  const getOrganizationName = (orgId) => {
+    const org = organizations.find(o => o.id === orgId);
+    return org ? org.name : 'Sem organização';
   };
 
   useEffect(() => {
     fetchUsers();
+    fetchOrganizations();
+  }, []);
   }, []);
 
   const getRoleColor = (role) => {
