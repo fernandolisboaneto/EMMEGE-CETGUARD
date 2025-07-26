@@ -110,10 +110,14 @@ class OrganizationHierarchyTester:
         """Test creating admin for organization"""
         print("4. Testing Admin Creation for Organization...")
         
+        if not self.org_id:
+            print("   ❌ No organization ID available")
+            return False
+        
         admin_data = {
-            "username": f"admin_advocacia_{datetime.now().strftime('%H%M%S')}",
-            "email": "admin@advocaciadigital.com.br",
-            "full_name": "Administrador Advocacia Digital",
+            "username": f"admin_test_{datetime.now().strftime('%H%M%S')}",
+            "email": f"admin.test.{datetime.now().strftime('%H%M%S')}@testorg.com.br",
+            "full_name": "Test Administrator",
             "password": "AdminPass123!",
             "role": "admin",
             "organization_id": self.org_id
@@ -123,10 +127,10 @@ class OrganizationHierarchyTester:
         
         if status == 200 and 'id' in response:
             self.admin_id = response['id']
-            print(f"   ✅ Admin created: {response['username']} for org: {response['organization_id'][:8]}...")
+            print(f"   ✅ Admin created: {response['username']} for org: {response.get('organization_id', 'None')[:8]}...")
             return True
         else:
-            print(f"   ❌ Admin creation failed: {response}")
+            print(f"   ❌ Admin creation failed: Status {status}, Response: {response}")
             return False
     
     def test_admin_login(self):
