@@ -357,6 +357,9 @@ async def get_certificate(certificate_id: str):
     # Convert ObjectId to string for JSON serialization
     if "_id" in cert:
         del cert["_id"]
+    # Convert risk_level to lowercase if it exists
+    if "risk_level" in cert:
+        cert["risk_level"] = cert["risk_level"].lower()
     return Certificate(**cert)
 
 @api_router.post("/certificates/{certificate_id}/predict")
