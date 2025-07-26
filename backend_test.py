@@ -581,8 +581,8 @@ class CertGuardAPITester:
 
     def run_all_tests(self) -> int:
         """Run all API tests"""
-        print("🚀 Starting CertGuard AI v2.0 CORE Backend API Tests")
-        print("Testing: Certificate Import, Assignments, Security Dashboard, AI Analysis, Audit Trail")
+        print("🚀 Starting CertGuard AI v2.0 COMPREHENSIVE Backend API Tests")
+        print("Testing: Organization Hierarchy, Certificate Import, Assignments, Security Dashboard, AI Analysis, Audit Trail")
         print("=" * 80)
         
         # Core API tests
@@ -595,7 +595,25 @@ class CertGuardAPITester:
             print("❌ Cannot continue tests without authentication token")
             return 1
         
-        # User management tests
+        # ORGANIZATION HIERARCHY TESTS (NEW PRIORITY TESTS)
+        print("\n🏢 Testing ORGANIZATION HIERARCHY SYSTEM:")
+        print("-" * 50)
+        
+        # 1. Organization Management
+        self.test_create_organization()
+        self.test_get_organizations()
+        self.test_get_organization_by_id()
+        
+        # 2. Hierarchical User Management
+        self.test_create_admin_for_organization()
+        self.test_admin_login()
+        self.test_admin_create_user_in_organization()
+        self.test_admin_view_organization_users()
+        
+        # 3. Hierarchy Validation Rules
+        self.test_organization_hierarchy_validation()
+        
+        # User management tests (existing)
         self.test_create_user()
         self.test_get_users()
         
@@ -641,7 +659,7 @@ class CertGuardAPITester:
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} tests passed")
         
         if self.tests_passed == self.tests_run:
-            print("🎉 All CORE tests passed! CertGuard AI v2.0 backend is working correctly.")
+            print("🎉 All tests passed! CertGuard AI v2.0 backend with HIERARCHICAL ORGANIZATIONS is working correctly.")
             return 0
         else:
             print(f"⚠️  {self.tests_run - self.tests_passed} tests failed. Check the issues above.")
