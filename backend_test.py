@@ -91,6 +91,213 @@ class CertGuardAPITester:
             f"User: {response.get('user', {}).get('username', 'Unknown')} ({response.get('user', {}).get('role', 'Unknown')})"
         )
 
+    def test_create_organization(self) -> bool:
+        """Test organization creation (Super Admin only)"""
+        org_data = {
+            "name": "Advocacia Digital S.A.",
+            "description": "Escritório de advocacia especializado em direito digital",
+            "cnpj": "12.345.678/0001-90",
+            "address": "Av. Paulista, 1000 - São Paulo, SP",
+            "phone": "(11) 3456-7890",
+            "email": "contato@advocaciadigital.com.br"
+        }
+        
+        success, response = self.make_request('POST', '/organizations', org_data, 200, auth_required=True)
+        
+        if success and 'id' in response:
+            self.created_org_id = response['id']
+            
+        return self.log_test(
+            "Create Organization (Super Admin)", 
+            success and 'id' in response,
+            f"Created org: {response.get('name', 'Unknown')} (ID: {response.get('id', 'None')[:8]}...)"
+        )
+
+    def test_get_organizations(self) -> bool:
+        """Test getting organizations"""
+        success, response = self.make_request('GET', '/organizations', auth_required=True)
+        
+        is_list = isinstance(response, list)
+        return self.log_test(
+            "Get Organizations", 
+            success and is_list,
+            f"Found {len(response) if is_list else 0} organizations"
+        )
+
+    def test_get_organization_by_id(self) -> bool:
+        """Test getting specific organization by ID"""
+        if not self.created_org_id:
+            return self.log_test("Get Organization by ID", False, "No organization ID available")
+            
+        success, response = self.make_request('GET', f'/organizations/{self.created_org_id}', auth_required=True)
+        
+        return self.log_test(
+            "Get Organization by ID", 
+            success and 'id' in response,
+            f"Retrieved org: {response.get('name', 'Unknown')}"
+        )
+
+    def test_create_admin_for_organization(self) -> bool:
+        """Test creating Admin user for organization (Super Admin creates Admin)"""
+        if not self.created_org_id:
+            return self.log_test("Create Admin for Organization", False, "No organization ID available")
+            
+        admin_data = {
+            "username": f"admin_advocacia_{datetime.now().strftime('%H%M%S')}",
+            "email": "admin@advocaciadigital.com.br",
+            "full_name": "Administrador Advocacia Digital",
+            "password": "AdminPass123!",
+            "role": "admin",
+            "organization_id": self.created_org_id
+        }
+        
+        success, response = self.make_request('POST', '/users', admin_data, 200, auth_required=True)
+        
+        if success and 'id' in response:
+            self.created_admin_id = response['id']
+            
+        return self.log_test(
+            "Create Admin for Organization", 
+            success and 'id' in response and response.get('organization_id') == self.created_org_id,
+            f"Created admin: {response.get('username', 'Unknown')} for org: {self.created_org_id[:8]}..."
+        )
+
+    def test_admin_login(self) -> bool:
+        """Test admin login to get admin token"""
+        if not self.created_admin_id:
+            return self.log_test("Admin Login", False, "No admin user created")
+            
+        # Get admin username from created admin
+        success_get, admin_data = self.make_request('GET', '/users', auth_required=True)
+        if not success_get:
+            return self.log_test("Admin Login", False, "Could not retrieve admin data")
+            
+        admin_username = None
+        for user in admin_data:
+            if user.get('id') == self.created_admin_id:
+                admin_username = user.get('username')
+                break
+                
+        if not admin_username:
+            return self.log_test("Admin Login", False, "Could not find admin username")
+            
+        login_data = {
+            "username": admin_username,
+            "password": "AdminPass123!"
+        }
+        
+        success, response = self.make_request('POST', '/auth/login', login_data)
+        
+        if success and 'access_token' in response:
+            self.admin_token = response['access_token']
+            
+        return self.log_test(
+            "Admin Login", 
+            success and 'access_token' in response,
+            f"Admin logged in: {response.get('user', {}).get('username', 'Unknown')} ({response.get('user', {}).get('role', 'Unknown')})"
+        )
+
+    def test_admin_create_user_in_organization(self) -> bool:
+        """Test Admin creating User within their organization"""
+        if not self.admin_token:
+            return self.log_test("Admin Create User in Organization", False, "No admin token available")
+            
+        # Temporarily switch to admin token
+        original_token = self.token
+        self.token = self.admin_token
+        
+        user_data = {
+            "username": f"user_advocacia_{datetime.now().strftime('%H%M%S')}",
+            "email": "usuario@advocaciadigital.com.br",
+            "full_name": "Usuário Advocacia Digital",
+            "password": "UserPass123!",
+            "role": "user"
+            # Note: organization_id should be automatically set by the admin's organization
+        }
+        
+        success, response = self.make_request('POST', '/users', user_data, 200, auth_required=True)
+        
+        # Restore original token
+        self.token = original_token
+        
+        return self.log_test(
+            "Admin Create User in Organization", 
+            success and 'id' in response and response.get('organization_id') == self.created_org_id,
+            f"Admin created user: {response.get('username', 'Unknown')} in org: {response.get('organization_id', 'None')[:8]}..."
+        )
+
+    def test_admin_view_organization_users(self) -> bool:
+        """Test Admin viewing users in their organization only"""
+        if not self.admin_token:
+            return self.log_test("Admin View Organization Users", False, "No admin token available")
+            
+        # Temporarily switch to admin token
+        original_token = self.token
+        self.token = self.admin_token
+        
+        success, response = self.make_request('GET', '/users', auth_required=True)
+        
+        # Restore original token
+        self.token = original_token
+        
+        is_list = isinstance(response, list)
+        # Admin should only see users from their organization
+        org_users_only = True
+        if is_list:
+            for user in response:
+                if user.get('organization_id') != self.created_org_id and user.get('role') != 'super_admin':
+                    org_users_only = False
+                    break
+        
+        return self.log_test(
+            "Admin View Organization Users", 
+            success and is_list and org_users_only,
+            f"Admin sees {len(response) if is_list else 0} users from their organization"
+        )
+
+    def test_organization_hierarchy_validation(self) -> bool:
+        """Test organization hierarchy validation rules"""
+        # Test 1: Super Admin can create Admin without organization (should fail)
+        admin_no_org_data = {
+            "username": f"admin_no_org_{datetime.now().strftime('%H%M%S')}",
+            "email": "admin.noorg@test.com",
+            "full_name": "Admin Without Organization",
+            "password": "AdminPass123!",
+            "role": "admin"
+            # No organization_id - should fail
+        }
+        
+        success1, response1 = self.make_request('POST', '/users', admin_no_org_data, 400, auth_required=True)
+        test1_passed = not success1 and 'organization' in str(response1.get('detail', '')).lower()
+        
+        # Test 2: Admin trying to create another Admin (should fail)
+        if self.admin_token:
+            original_token = self.token
+            self.token = self.admin_token
+            
+            admin_data = {
+                "username": f"admin_by_admin_{datetime.now().strftime('%H%M%S')}",
+                "email": "admin.byadmin@test.com",
+                "full_name": "Admin Created by Admin",
+                "password": "AdminPass123!",
+                "role": "admin"
+            }
+            
+            success2, response2 = self.make_request('POST', '/users', admin_data, 403, auth_required=True)
+            test2_passed = not success2 and 'admin can only create user' in str(response2.get('detail', '')).lower()
+            
+            self.token = original_token
+        else:
+            test2_passed = False
+        
+        overall_success = test1_passed and test2_passed
+        
+        return self.log_test(
+            "Organization Hierarchy Validation", 
+            overall_success,
+            f"Admin without org: {'BLOCKED' if test1_passed else 'ALLOWED'}, Admin by Admin: {'BLOCKED' if test2_passed else 'ALLOWED'}"
+        )
+
     def test_create_user(self) -> bool:
         """Test user creation (Admin creates User)"""
         user_data = {
