@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, status, File, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -23,8 +23,10 @@ from passlib.context import CryptContext
 import secrets
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption, load_pkcs12
+from cryptography import x509
 import base64
+import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
