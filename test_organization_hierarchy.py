@@ -10,7 +10,7 @@ from datetime import datetime
 
 class OrganizationHierarchyTester:
     def __init__(self):
-        self.base_url = "https://4467813a-53fb-447d-a535-d1c3afcb1b4e.preview.emergentagent.com"
+        self.base_url = "http://localhost:8001"
         self.api_url = f"{self.base_url}/api"
         self.superadmin_token = None
         self.admin_token = None
