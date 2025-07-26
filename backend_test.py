@@ -179,6 +179,11 @@ class CertGuardAPITester:
         
         if success and 'certificate' in response:
             self.created_cert_id = response['certificate']['id']
+        else:
+            # Try to get existing certificate for further tests
+            success_get, assignments = self.make_request('GET', '/certificates/assignments', auth_required=True)
+            if success_get and isinstance(assignments, list) and len(assignments) > 0:
+                self.created_cert_id = assignments[0]['certificate']['id']
             
         return self.log_test(
             "Certificate Import (P12/PFX)", 
