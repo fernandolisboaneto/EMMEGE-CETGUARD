@@ -41,12 +41,15 @@ const AuthProvider = ({ children }) => {
         return { success: false, error: 'Invalid response format' };
       }
       
+      console.log('Setting token and user data...');
       setToken(access_token);
       setUser(userData);
       
+      console.log('Saving to localStorage...');
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(userData));
       
+      console.log('Setting axios default headers...');
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
       console.log('Login successful, user:', userData);
@@ -54,9 +57,10 @@ const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Login error:', error);
       console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+        error: error.response?.data?.detail || error.message || 'Login failed' 
       };
     }
   };
