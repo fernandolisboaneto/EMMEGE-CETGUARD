@@ -419,6 +419,11 @@ async def get_audit_trail(certificate_id: str):
         {"certificate_id": certificate_id}
     ).sort("timestamp", 1).to_list(1000)
     
+    # Convert ObjectId to string for JSON serialization
+    for log in audit_logs:
+        if "_id" in log:
+            del log["_id"]
+    
     return [AuditLog(**log) for log in audit_logs]
 
 @api_router.post("/zero-trust/verify")
