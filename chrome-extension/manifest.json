@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "CertGuard AI - Extensão de Segurança",
+  "version": "1.0.0",
+  "description": "Extensão avançada para gerenciamento seguro de certificados digitais",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "webNavigation",
+    "cookies",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://*.tjsp.jus.br/*",
+    "https://*.tjrj.jus.br/*",
+    "https://*.tjmg.jus.br/*",
+    "https://*.stf.jus.br/*",
+    "https://*.stj.jus.br/*",
+    "https://*.tst.jus.br/*",
+    "https://*.trf1.jus.br/*",
+    "https://*.trf2.jus.br/*",
+    "https://*.trf3.jus.br/*",
+    "https://*.trf4.jus.br/*",
+    "https://*.trf5.jus.br/*",
+    "https://db8c0483-612c-4ca0-a771-ee19879f6626.preview.emergentagent.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.tjsp.jus.br/*",
+        "https://*.tjrj.jus.br/*",
+        "https://*.tjmg.jus.br/*",
+        "https://*.stf.jus.br/*",
+        "https://*.stj.jus.br/*",
+        "https://*.tst.jus.br/*",
+        "https://*.trf1.jus.br/*",
+        "https://*.trf2.jus.br/*",
+        "https://*.trf3.jus.br/*",
+        "https://*.trf4.jus.br/*",
+        "https://*.trf5.jus.br/*"
+      ],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CertGuard AI"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

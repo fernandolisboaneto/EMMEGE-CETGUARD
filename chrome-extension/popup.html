@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CertGuard AI</title>
+  <style>
+    body {
+      width: 400px;
+      min-height: 500px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    
+    .header h1 {
+      margin: 0;
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .header p {
+      margin: 5px 0 0 0;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 14px;
+    }
+    
+    .content {
+      padding: 20px;
+      background: white;
+      margin: 20px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    
+    .connected .status-icon {
+      background: #28a745;
+    }
+    
+    .disconnected .status-icon {
+      background: #dc3545;
+    }
+    
+    .section {
+      margin-bottom: 20px;
+    }
+    
+    .section h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+    
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      color: #666;
+    }
+    
+    .info-value {
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 10px;
+    }
+    
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .certificate-info {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .certificate-name {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 5px;
+    }
+    
+    .certificate-details {
+      font-size: 12px;
+      color: #6c757d;
+    }
+    
+    .security-indicators {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .security-indicator {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    
+    .security-indicator.safe {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .security-indicator.warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .security-indicator.danger {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+      40% { color: black; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+      60% { text-shadow: .25em 0 0 black, .5em 0 0 rgba(0,0,0,0); }
+      80%, 100% { text-shadow: .25em 0 0 black, .5em 0 0 black; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔐 CertGuard AI</h1>
+    <p>Proteção Avançada de Certificados</p>
+  </div>
+  
+  <div class="content">
+    <div id="loading" class="loading">
+      Carregando informações
+    </div>
+    
+    <div id="main-content" style="display: none;">
+      <div id="connection-status" class="status disconnected">
+        <div class="status-icon"></div>
+        <span>Desconectado do CertGuard AI</span>
+      </div>
+      
+      <div class="section">
+        <h3>🛡️ Indicadores de Segurança</h3>
+        <div class="security-indicators">
+          <div id="blockchain-indicator" class="security-indicator safe">
+            <div>🔗 Blockchain</div>
+            <div>Ativo</div>
+          </div>
+          <div id="ai-indicator" class="security-indicator safe">
+            <div>🤖 IA</div>
+            <div>Monitorando</div>
+          </div>
+          <div id="zero-trust-indicator" class="security-indicator safe">
+            <div>🔒 Zero Trust</div>
+            <div>Verificado</div>
+          </div>
+          <div id="container-indicator" class="security-indicator safe">
+            <div>📦 Container</div>
+            <div>Seguro</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3>📋 Informações do Site</h3>
+        <div class="info-item">
+          <span class="info-label">URL:</span>
+          <span id="current-url" class="info-value">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Tribunal:</span>
+          <span id="tribunal-name" class="info-value">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Certificado:</span>
+          <span id="active-certificate" class="info-value">Nenhum</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Sessão:</span>
+          <span id="session-status" class="info-value">Inativa</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3>🔑 Certificado Ativo</h3>
+        <div id="certificate-info" class="certificate-info">
+          <div class="certificate-name">Nenhum certificado selecionado</div>
+          <div class="certificate-details">Selecione um certificado para acesso seguro</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <button id="access-btn" class="btn btn-primary" disabled>
+          🚀 Iniciar Acesso Seguro
+        </button>
+        <button id="container-btn" class="btn btn-secondary">
+          📦 Abrir Container Seguro
+        </button>
+        <button id="logout-btn" class="btn btn-danger">
+          🚪 Sair
+        </button>
+      </div>
+      
+      <div class="section">
+        <div class="info-item">
+          <span class="info-label">Última Atualização:</span>
+          <span id="last-update" class="info-value">-</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Versão:</span>
+          <span class="info-value">1.0.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
