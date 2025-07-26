@@ -149,6 +149,10 @@ class CertGuardAPITester:
         success, response = self.make_request('GET', '/tribunal-sites', auth_required=True)
         
         is_list = isinstance(response, list)
+        if is_list and len(response) > 0:
+            # Store site IDs for later use in assignments
+            self.site_ids = [site['id'] for site in response[:5]]  # Get first 5 site IDs
+            
         return self.log_test(
             "Get Tribunal Sites", 
             success and is_list,
