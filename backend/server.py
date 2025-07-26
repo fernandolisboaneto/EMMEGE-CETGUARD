@@ -249,7 +249,7 @@ async def predict_certificate_needs(certificate_id: str, context: str, time_hori
                 {"id": certificate_id},
                 {"$set": {
                     "prediction_score": prediction.get("confidence_score", 0.0),
-                    "risk_level": prediction.get("risk_level", "LOW"),
+                    "risk_level": prediction.get("risk_level", "low").lower(),
                     "updated_at": datetime.utcnow()
                 }}
             )
