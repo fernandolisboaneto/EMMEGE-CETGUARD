@@ -372,7 +372,7 @@ async def analyze_user_behavior(user_id: str, current_action: Dict[str, Any]) ->
     Histórico recente (últimas {len(recent_activities)} atividades):
     {json.dumps([{
         'action': act['action_type'],
-        'timestamp': act['timestamp'],
+        'timestamp': act['timestamp'].isoformat() if isinstance(act['timestamp'], datetime) else str(act['timestamp']),
         'ip': act.get('ip_address'),
         'success': act.get('success', True)
     } for act in recent_activities[-10:]], indent=2)}
