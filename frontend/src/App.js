@@ -2135,6 +2135,8 @@ const Dashboard = () => {
     switch (activeTab) {
       case 'dashboard':
         return <AdminDashboard />;
+      case 'organizations':
+        return <OrganizationManagement />;
       case 'users':
         return <UserManagement />;
       case 'sites':
