@@ -705,10 +705,12 @@ const UserManagement = () => {
                 )}
               </select>
             </div>
-            {(user?.role === 'super_admin' && newUser.role === 'admin') && (
-              <div className="md:col-span-2">
+            
+            {/* Campo de Organização - sempre mostrar para Super Admin quando criar Admin */}
+            {user?.role === 'super_admin' && newUser.role === 'admin' && (
+              <div className="md:col-span-2" style={{backgroundColor: '#fef3c7', padding: '15px', borderRadius: '8px', border: '2px solid #f59e0b'}}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Organização *
+                  <span className="text-red-600">*</span> Organização (obrigatório para Admin)
                 </label>
                 <select
                   value={newUser.organization_id}
@@ -722,12 +724,16 @@ const UserManagement = () => {
                   ))}
                 </select>
                 {organizations.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Carregando organizações...
+                  <p className="text-sm text-red-600 mt-1">
+                    ⚠️ Nenhuma organização encontrada. Crie uma organização primeiro.
                   </p>
                 )}
+                <p className="text-sm text-gray-600 mt-1">
+                  💡 O Admin será associado à organização selecionada e poderá criar usuários apenas nesta organização.
+                </p>
               </div>
             )}
+            
             <div className="md:col-span-2">
               <button
                 type="submit"
