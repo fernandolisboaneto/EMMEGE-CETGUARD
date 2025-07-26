@@ -226,6 +226,7 @@ const Navigation = ({ activeTab, setActiveTab }) => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', roles: ['super_admin', 'admin', 'user'] },
+    { id: 'organizations', label: 'Organizações', icon: '🏢', roles: ['super_admin'] },
     { id: 'users', label: 'Usuários', icon: '👥', roles: ['super_admin', 'admin'] },
     { id: 'certificates', label: 'Certificados', icon: '🔐', roles: ['super_admin', 'admin'] },
     { id: 'sites', label: 'Sites/Tribunais', icon: '🏛️', roles: ['super_admin', 'admin'] },
