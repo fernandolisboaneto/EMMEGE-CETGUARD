@@ -814,13 +814,15 @@ const Dashboard = () => {
       case 'sites':
         return <SitesManagement />;
       case 'certificates':
-        return <div className="p-8 text-center">Gerenciamento de Certificados - Em desenvolvimento</div>;
+        return <CertificateManagement />;
       case 'assignments':
-        return <div className="p-8 text-center">Atribuições de Certificados - Em desenvolvimento</div>;
+        return <AssignmentManagement />;
       case 'security':
-        return <div className="p-8 text-center">Alertas de Segurança - Em desenvolvimento</div>;
+        return <SecurityManagement />;
       case 'audit':
-        return <div className="p-8 text-center">Trilha de Auditoria - Em desenvolvimento</div>;
+        return <AuditManagement />;
+      case 'ai-analysis':
+        return <AIAnalysisManagement />;
       case 'my-access':
         return <div className="p-8 text-center">Meus Acessos - Em desenvolvimento</div>;
       default:
