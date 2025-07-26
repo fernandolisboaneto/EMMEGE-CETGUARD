@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demonstração - Campo de Organização</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .org-field {
+            background-color: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            display: none;
+        }
+        .org-field.show {
+            display: block;
+        }
+        .org-field label {
+            color: #92400e;
+        }
+        .org-field .required {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .role-super-admin {
+            color: #059669;
+            font-weight: bold;
+        }
+        .organizations-list {
+            background-color: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .org-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        .success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Demonstração: Campo de Organização</h1>
+        
+        <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3>Situação:</h3>
+            <p><strong>Usuário atual:</strong> <span class="role-super-admin">Super Administrator</span></p>
+            <p><strong>Problema:</strong> Campo de organização não aparece quando Super Admin seleciona "Admin"</p>
+            <p><strong>Solução:</strong> Campo deve aparecer automaticamente quando função "Admin" é selecionada</p>
+        </div>
+
+        <h2>Formulário de Criação de Usuário</h2>
+        
+        <div class="form-group">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" id="username" placeholder="Digite o nome de usuário" value="admin_teste">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Digite o email" value="admin@teste.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="fullName">Nome Completo:</label>
+            <input type="text" id="fullName" placeholder="Digite o nome completo" value="Administrador Teste">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Senha:</label>
+            <input type="password" id="password" placeholder="Digite a senha" value="admin123">
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Função:</label>
+            <select id="role" onchange="toggleOrganizationField()">
+                <option value="user">Usuário</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        
+        <div class="org-field" id="organizationField">
+            <label for="organization">
+                <span class="required">*</span> Organização (obrigatório para Admin)
+            </label>
+            <select id="organization" required>
+                <option value="">Selecione uma organização</option>
+                <option value="org1">Escritório Silva & Associados</option>
+                <option value="org2">Advocacia Moderna Ltda</option>
+                <option value="org3">Advocacia Digital S.A.</option>
+            </select>
+            <div class="help-text">
+                💡 O Admin será associado à organização selecionada e poderá criar usuários apenas nesta organização.
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button onclick="createUser()">Criar Usuário</button>
+            <button onclick="resetForm()" style="background-color: #6b7280;">Limpar</button>
+        </div>
+        
+        <div id="result"></div>
+        
+        <div class="organizations-list">
+            <h3>📋 Organizações Disponíveis:</h3>
+            <div class="org-item">
+                <strong>Escritório Silva & Associados</strong><br>
+                CNPJ: 12.345.678/0001-90<br>
+                Email: contato@silva-associados.com
+            </div>
+            <div class="org-item">
+                <strong>Advocacia Moderna Ltda</strong><br>
+                CNPJ: 98.765.432/0001-10<br>
+                Email: contato@advocaciamoderna.com
+            </div>
+            <div class="org-item">
+                <strong>Advocacia Digital S.A.</strong><br>
+                CNPJ: 12.345.678/0001-90<br>
+                Email: contato@advocaciadigital.com.br
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleOrganizationField() {
+            const role = document.getElementById('role').value;
+            const orgField = document.getElementById('organizationField');
+            
+            if (role === 'admin') {
+                orgField.classList.add('show');
+                document.getElementById('organization').required = true;
+                console.log('Campo de organização mostrado para Admin');
+            } else {
+                orgField.classList.remove('show');
+                document.getElementById('organization').required = false;
+                console.log('Campo de organização ocultado para User');
+            }
+        }
+
+        function createUser() {
+            const role = document.getElementById('role').value;
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('fullName').value;
+            const password = document.getElementById('password').value;
+            const organization = document.getElementById('organization').value;
+            
+            if (role === 'admin' && !organization) {
+                alert('⚠️ Selecione uma organização para o Admin!');
+                return;
+            }
+            
+            const userData = {
+                username: username,
+                email: email,
+                full_name: fullName,
+                password: password,
+                role: role
+            };
+            
+            if (role === 'admin') {
+                userData.organization_id = organization;
+            }
+            
+            document.getElementById('result').innerHTML = `
+                <div class="success">
+                    <h4>✅ Usuário criado com sucesso!</h4>
+                    <p><strong>Nome:</strong> ${username}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Função:</strong> ${role}</p>
+                    ${role === 'admin' ? `<p><strong>Organização:</strong> ${document.getElementById('organization').options[document.getElementById('organization').selectedIndex].text}</p>` : ''}
+                    <p><strong>Dados JSON:</strong></p>
+                    <pre>${JSON.stringify(userData, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        function resetForm() {
+            document.getElementById('username').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('fullName').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('role').value = 'user';
+            document.getElementById('organization').value = '';
+            document.getElementById('result').innerHTML = '';
+            toggleOrganizationField();
+        }
+        
+        // Demonstrar automaticamente o campo de organização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Selecionar Admin por padrão para demonstração
+            document.getElementById('role').value = 'admin';
+            toggleOrganizationField();
+        });
+    </script>
+</body>
+</html>
