@@ -97,7 +97,11 @@ const LoginForm = () => {
     setLoading(true);
     setError('');
 
+    console.log('Form submitted with:', { username, password: '***' });
+    
     const result = await login(username, password);
+    
+    console.log('Login result:', result);
     
     if (!result.success) {
       setError(result.error);
