@@ -85,6 +85,28 @@ class ActionType(str, Enum):
     ANOMALY_DETECTED = "anomaly_detected"
 
 # Models
+class Organization(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    cnpj: Optional[str] = None  # Brazilian company registration
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    created_by: str  # Super Admin ID
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    settings: Dict[str, Any] = {}
+
+class OrganizationCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    cnpj: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
@@ -92,6 +114,7 @@ class User(BaseModel):
     full_name: str
     role: UserRole
     password: str
+    organization_id: Optional[str] = None  # Organization ID
     created_by: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
