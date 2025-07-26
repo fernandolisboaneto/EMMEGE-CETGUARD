@@ -353,12 +353,24 @@ async def analyze_user_behavior(user_id: str, current_action: Dict[str, Any]) ->
     # Check for rapid successive actions
     if len(recent_activities) >= 5:
         time_diffs = []
-        for i in range(4):
-            current_time = datetime.fromisoformat(recent_activities[i]["timestamp"].replace("Z", "+00:00"))
-            next_time = datetime.fromisoformat(recent_activities[i+1]["timestamp"].replace("Z", "+00:00"))
+        for i in range(min(4, len(recent_activities) - 1)):
+            current_activity = recent_activities[i]
+            next_activity = recent_activities[i+1]
+            
+            # Handle both datetime objects and ISO strings
+            if isinstance(current_activity["timestamp"], datetime):
+                current_time = current_activity["timestamp"]
+            else:
+                current_time = datetime.fromisoformat(str(current_activity["timestamp"]).replace("Z", "+00:00"))
+                
+            if isinstance(next_activity["timestamp"], datetime):
+                next_time = next_activity["timestamp"]
+            else:
+                next_time = datetime.fromisoformat(str(next_activity["timestamp"]).replace("Z", "+00:00"))
+                
             time_diffs.append(abs((current_time - next_time).seconds))
         
-        if all(diff < 5 for diff in time_diffs):  # Less than 5 seconds between actions
+        if time_diffs and all(diff < 5 for diff in time_diffs):  # Less than 5 seconds between actions
             risk_factors.append("Rapid successive actions")
             risk_score += 0.4
     
