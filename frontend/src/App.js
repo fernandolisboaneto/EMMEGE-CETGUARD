@@ -579,7 +579,6 @@ const UserManagement = () => {
     fetchUsers();
     fetchOrganizations();
   }, []);
-  }, []);
 
   const getRoleColor = (role) => {
     switch (role) {
