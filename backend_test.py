@@ -22,6 +22,10 @@ class CertGuardAPITester:
         self.created_user_id = None
         self.created_cert_id = None
         self.site_ids = []
+        # Organization hierarchy testing
+        self.created_org_id = None
+        self.created_admin_id = None
+        self.admin_token = None
         
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test results"""
