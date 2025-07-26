@@ -687,63 +687,475 @@ async def get_users(
     
     return [User(**user) for user in users]
 
-# Certificate Management Routes
-@api_router.post("/certificates", response_model=Certificate)
-async def create_certificate(
-    cert_data: Dict[str, Any],
+# Certificate Import and Management Routes
+@api_router.post("/certificates/import")
+async def import_certificate(
+    certificate_import: CertificateImport,
     request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """Create certificate (Admin only)"""
+    """Import certificate from P12/PFX file (Admin only)"""
     
     if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
-        raise HTTPException(status_code=403, detail="Only Admins can create certificates")
+        raise HTTPException(status_code=403, detail="Only Admins can import certificates")
     
-    # Generate certificate details
-    cert_dict = {
-        "name": cert_data.get("name"),
-        "common_name": cert_data.get("common_name"),
-        "organization": cert_data.get("organization"),
-        "department": cert_data.get("department"),
-        "email": cert_data.get("email"),
-        "valid_from": datetime.fromisoformat(cert_data.get("valid_from")),
-        "valid_to": datetime.fromisoformat(cert_data.get("valid_to")),
-        "algorithm": cert_data.get("algorithm", "RSA-2048"),
-        "key_usage": cert_data.get("key_usage", []),
-        "san_dns": cert_data.get("san_dns", []),
-        "serial_number": str(uuid.uuid4()),
-        "issuer": f"CN=CertGuard AI CA, O={cert_data.get('organization')}",
-        "subject": f"CN={cert_data.get('common_name')}, O={cert_data.get('organization')}, OU={cert_data.get('department')}"
-    }
+    try:
+        # Decode base64 file data
+        file_data = base64.b64decode(certificate_import.file_data)
+        
+        # Load PKCS12 certificate
+        private_key, certificate, additional_certificates = load_pkcs12(
+            file_data, 
+            certificate_import.password.encode()
+        )
+        
+        # Extract certificate information
+        subject = certificate.subject
+        issuer = certificate.issuer
+        
+        # Get subject attributes
+        common_name = None
+        organization = None
+        organizational_unit = None
+        email = None
+        
+        for attribute in subject:
+            if attribute.oid == x509.NameOID.COMMON_NAME:
+                common_name = attribute.value
+            elif attribute.oid == x509.NameOID.ORGANIZATION_NAME:
+                organization = attribute.value
+            elif attribute.oid == x509.NameOID.ORGANIZATIONAL_UNIT_NAME:
+                organizational_unit = attribute.value
+            elif attribute.oid == x509.NameOID.EMAIL_ADDRESS:
+                email = attribute.value
+        
+        # Create certificate object
+        cert_obj = Certificate(
+            name=certificate_import.name,
+            common_name=common_name or "Unknown",
+            organization=organization or certificate_import.organization,
+            department=organizational_unit or "Unknown",
+            email=email or "unknown@example.com",
+            serial_number=str(certificate.serial_number),
+            issuer=issuer.rfc4514_string(),
+            subject=subject.rfc4514_string(),
+            valid_from=certificate.not_valid_before,
+            valid_to=certificate.not_valid_after,
+            algorithm="RSA-2048",
+            key_usage=[],
+            san_dns=[],
+            assigned_to=None,
+            assigned_by=current_user.id,
+            status=CertificateStatus.ACTIVE if certificate.not_valid_after > datetime.utcnow() else CertificateStatus.EXPIRED
+        )
+        
+        # Create secure container for private key
+        private_key_pem = private_key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()
+        ).decode()
+        
+        cert_obj.container_hash = create_secure_container(cert_obj.id, current_user.id, private_key_pem)
+        
+        # Save certificate
+        await db.certificates.insert_one(cert_obj.dict())
+        
+        # Log certificate import
+        await log_user_activity(
+            current_user.id,
+            ActionType.CERTIFICATE_ACCESS,
+            request,
+            certificate_id=cert_obj.id,
+            action_details={
+                "action": "import",
+                "file_name": certificate_import.file_name,
+                "certificate_name": cert_obj.name,
+                "organization": cert_obj.organization,
+                "valid_until": cert_obj.valid_to.isoformat()
+            }
+        )
+        
+        return {
+            "message": "Certificate imported successfully",
+            "certificate": cert_obj
+        }
+        
+    except Exception as e:
+        logger.error(f"Certificate import error: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to import certificate: {str(e)}")
+
+@api_router.post("/certificates/assign")
+async def assign_certificate_to_user_and_sites(
+    assignment: CertificateAssignment,
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """Assign certificate to user with specific sites access (Admin only)"""
     
-    cert_obj = Certificate(**cert_dict)
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Only Admins can assign certificates")
     
-    # Create secure container
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048
+    # Get certificate
+    cert = await db.certificates.find_one({"id": assignment.certificate_id})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    # Get user
+    user = await db.users.find_one({"id": assignment.user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify sites exist
+    for site_id in assignment.site_ids:
+        site = await db.tribunal_sites.find_one({"id": site_id})
+        if not site:
+            raise HTTPException(status_code=404, detail=f"Site {site_id} not found")
+    
+    # Update certificate assignment
+    await db.certificates.update_one(
+        {"id": assignment.certificate_id},
+        {"$set": {
+            "assigned_to": assignment.user_id,
+            "assigned_by": current_user.id,
+            "updated_at": datetime.utcnow()
+        }}
     )
-    private_key_pem = private_key.private_bytes(
-        encoding=Encoding.PEM,
-        format=PrivateFormat.PKCS8,
-        encryption_algorithm=NoEncryption()
-    ).decode()
     
-    cert_obj.container_hash = create_secure_container(cert_obj.id, current_user.id, private_key_pem)
+    # Create site access entries
+    for site_id in assignment.site_ids:
+        access = UserSiteAccess(
+            user_id=assignment.user_id,
+            site_id=site_id,
+            certificate_id=assignment.certificate_id,
+            assigned_by=current_user.id,
+            access_type=assignment.access_type,
+            allowed_hours=assignment.allowed_hours,
+            expires_at=assignment.expires_at
+        )
+        
+        await db.user_site_access.insert_one(access.dict())
     
-    # Save certificate
-    await db.certificates.insert_one(cert_obj.dict())
-    
-    # Log certificate creation
+    # Log assignment
     await log_user_activity(
         current_user.id,
         ActionType.CERTIFICATE_ACCESS,
         request,
-        certificate_id=cert_obj.id,
-        action_details={"action": "create", "certificate_name": cert_obj.name}
+        certificate_id=assignment.certificate_id,
+        action_details={
+            "action": "assign",
+            "assigned_to": assignment.user_id,
+            "assigned_user": user["username"],
+            "site_ids": assignment.site_ids,
+            "access_type": assignment.access_type,
+            "expires_at": assignment.expires_at.isoformat() if assignment.expires_at else None
+        }
     )
     
-    return cert_obj
+    return {
+        "message": "Certificate assigned successfully",
+        "assignment": {
+            "certificate_id": assignment.certificate_id,
+            "user_id": assignment.user_id,
+            "site_count": len(assignment.site_ids),
+            "access_type": assignment.access_type
+        }
+    }
+
+@api_router.get("/certificates/assignments")
+async def get_certificate_assignments(
+    current_user: User = Depends(get_current_user)
+):
+    """Get all certificate assignments"""
+    
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Only Admins can view assignments")
+    
+    # Get all certificates with assignments
+    certificates = await db.certificates.find({"assigned_to": {"$ne": None}}).to_list(1000)
+    
+    assignments = []
+    for cert in certificates:
+        if "_id" in cert:
+            del cert["_id"]
+        
+        # Get user info
+        user = await db.users.find_one({"id": cert["assigned_to"]})
+        if "_id" in user:
+            del user["_id"]
+        
+        # Get site access
+        site_access = await db.user_site_access.find({
+            "user_id": cert["assigned_to"],
+            "certificate_id": cert["id"]
+        }).to_list(100)
+        
+        # Get site details
+        sites = []
+        for access in site_access:
+            site = await db.tribunal_sites.find_one({"id": access["site_id"]})
+            if site:
+                if "_id" in site:
+                    del site["_id"]
+                sites.append({
+                    "site": site,
+                    "access_type": access["access_type"],
+                    "allowed_hours": access.get("allowed_hours"),
+                    "expires_at": access.get("expires_at")
+                })
+        
+        assignments.append({
+            "certificate": Certificate(**cert),
+            "user": User(**user),
+            "sites": sites,
+            "assigned_at": cert["updated_at"]
+        })
+    
+    return assignments
+
+# AI Analysis Routes
+@api_router.post("/ai/analyze")
+async def ai_analysis(
+    analysis_request: AIAnalysisRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    """AI-powered analysis of security, behavior, certificates, etc."""
+    
+    try:
+        # Get data based on analysis type
+        if analysis_request.analysis_type == "behavior":
+            # Get user behavior data
+            time_limit = datetime.utcnow() - timedelta(hours=analysis_request.time_range)
+            activities = await audit_db.user_activities.find({
+                "timestamp": {"$gte": time_limit}
+            }).to_list(1000)
+            
+            prompt = f"""
+            Análise Comportamental - CertGuard AI
+            
+            Período: Últimas {analysis_request.time_range} horas
+            Total de atividades: {len(activities)}
+            
+            Atividades recentes:
+            {json.dumps([{
+                'user_id': act['user_id'],
+                'action': act['action_type'],
+                'timestamp': act['timestamp'].isoformat() if isinstance(act['timestamp'], datetime) else str(act['timestamp']),
+                'risk_score': act.get('risk_score', 0),
+                'success': act.get('success', True)
+            } for act in activities[-50:]], indent=2)}
+            
+            Contexto adicional: {json.dumps(analysis_request.context, indent=2)}
+            
+            Analise os padrões comportamentais e forneça:
+            1. Usuários com comportamento suspeito
+            2. Padrões anômalos detectados
+            3. Recomendações de segurança
+            4. Score de risco geral do sistema
+            5. Ações preventivas recomendadas
+            
+            Responda em JSON:
+            {{
+                "risk_level": "LOW|MEDIUM|HIGH|CRITICAL",
+                "suspicious_users": [list of user IDs],
+                "anomalies": [list of detected anomalies],
+                "recommendations": [list of security recommendations],
+                "system_risk_score": 0.85,
+                "preventive_actions": [list of actions],
+                "analysis_summary": "detailed summary"
+            }}
+            """
+            
+        elif analysis_request.analysis_type == "certificate":
+            # Get certificate data
+            certificates = await db.certificates.find().to_list(1000)
+            expiring_soon = [cert for cert in certificates if cert['valid_to'] < datetime.utcnow() + timedelta(days=30)]
+            
+            prompt = f"""
+            Análise de Certificados - CertGuard AI
+            
+            Total de certificados: {len(certificates)}
+            Certificados próximos ao vencimento (30 dias): {len(expiring_soon)}
+            
+            Certificados analisados:
+            {json.dumps([{
+                'id': cert['id'],
+                'name': cert['name'],
+                'organization': cert['organization'],
+                'status': cert['status'],
+                'valid_to': cert['valid_to'].isoformat() if isinstance(cert['valid_to'], datetime) else str(cert['valid_to']),
+                'usage_count': cert.get('usage_count', 0),
+                'risk_level': cert.get('risk_level', 'low')
+            } for cert in certificates], indent=2)}
+            
+            Contexto: {json.dumps(analysis_request.context, indent=2)}
+            
+            Analise os certificados e forneça:
+            1. Certificados com necessidade urgente de renovação
+            2. Certificados com uso suspeito
+            3. Recomendações de gerenciamento
+            4. Otimizações sugeridas
+            5. Plano de renovação automatizado
+            
+            Responda em JSON:
+            {{
+                "urgent_renewals": [list of certificate IDs],
+                "suspicious_usage": [list of certificate IDs],
+                "management_recommendations": [list of recommendations],
+                "optimization_suggestions": [list of suggestions],
+                "renewal_plan": {{
+                    "immediate": [certificates to renew now],
+                    "this_month": [certificates to renew this month],
+                    "next_month": [certificates to renew next month]
+                }},
+                "analysis_summary": "detailed summary"
+            }}
+            """
+            
+        elif analysis_request.analysis_type == "security":
+            # Get security alerts and activities
+            alerts = await audit_db.security_alerts.find({
+                "timestamp": {"$gte": datetime.utcnow() - timedelta(hours=analysis_request.time_range)}
+            }).to_list(1000)
+            
+            prompt = f"""
+            Análise de Segurança - CertGuard AI
+            
+            Período: Últimas {analysis_request.time_range} horas
+            Total de alertas: {len(alerts)}
+            
+            Alertas de segurança:
+            {json.dumps([{
+                'type': alert['alert_type'],
+                'severity': alert['severity'],
+                'message': alert['message'],
+                'timestamp': alert['timestamp'].isoformat() if isinstance(alert['timestamp'], datetime) else str(alert['timestamp']),
+                'resolved': alert.get('resolved', False)
+            } for alert in alerts], indent=2)}
+            
+            Contexto: {json.dumps(analysis_request.context, indent=2)}
+            
+            Analise a segurança e forneça:
+            1. Ameaças críticas identificadas
+            2. Vulnerabilidades encontradas
+            3. Recomendações de segurança
+            4. Plano de resposta a incidentes
+            5. Melhorias de segurança
+            
+            Responda em JSON:
+            {{
+                "critical_threats": [list of threats],
+                "vulnerabilities": [list of vulnerabilities],
+                "security_recommendations": [list of recommendations],
+                "incident_response_plan": [list of actions],
+                "security_improvements": [list of improvements],
+                "overall_security_score": 0.92,
+                "analysis_summary": "detailed summary"
+            }}
+            """
+            
+        else:
+            raise HTTPException(status_code=400, detail="Invalid analysis type")
+        
+        # Call NVIDIA API
+        result = await call_nvidia_api(prompt)
+        
+        if "error" in result:
+            return {"error": result["error"]}
+        
+        ai_response = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        # Try to parse JSON response
+        try:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', ai_response)
+            if json_match:
+                analysis_result = json.loads(json_match.group())
+                
+                # Log AI analysis
+                await log_user_activity(
+                    current_user.id,
+                    ActionType.LOGIN,  # Using LOGIN as placeholder for AI analysis
+                    request,
+                    action_details={
+                        "action": "ai_analysis",
+                        "analysis_type": analysis_request.analysis_type,
+                        "time_range": analysis_request.time_range,
+                        "result_summary": analysis_result.get("analysis_summary", "")
+                    }
+                )
+                
+                return {
+                    "analysis_type": analysis_request.analysis_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "result": analysis_result,
+                    "raw_response": ai_response
+                }
+            else:
+                return {"error": "Could not parse AI response", "raw_response": ai_response}
+        except Exception as e:
+            logger.error(f"Error parsing AI response: {e}")
+            return {"error": str(e), "raw_response": ai_response}
+            
+    except Exception as e:
+        logger.error(f"AI analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
+
+@api_router.get("/security/dashboard")
+async def get_security_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """Get comprehensive security dashboard data"""
+    
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Only Admins can view security dashboard")
+    
+    # Get recent security alerts
+    alerts = await audit_db.security_alerts.find({
+        "timestamp": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+    }).sort("timestamp", -1).limit(50).to_list(50)
+    
+    # Get high-risk activities
+    high_risk_activities = await audit_db.user_activities.find({
+        "risk_score": {"$gte": 0.5},
+        "timestamp": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+    }).sort("risk_score", -1).limit(20).to_list(20)
+    
+    # Get failed login attempts
+    failed_logins = await audit_db.user_activities.find({
+        "action_type": "login",
+        "success": False,
+        "timestamp": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+    }).to_list(100)
+    
+    # Calculate security metrics
+    total_activities = await audit_db.user_activities.count_documents({
+        "timestamp": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+    })
+    
+    # Clean up MongoDB ObjectIds
+    for alert in alerts:
+        if "_id" in alert:
+            del alert["_id"]
+        if "timestamp" in alert and isinstance(alert["timestamp"], datetime):
+            alert["timestamp"] = alert["timestamp"].isoformat()
+    
+    for activity in high_risk_activities:
+        if "_id" in activity:
+            del activity["_id"]
+        if "timestamp" in activity and isinstance(activity["timestamp"], datetime):
+            activity["timestamp"] = activity["timestamp"].isoformat()
+    
+    return {
+        "security_alerts": alerts,
+        "high_risk_activities": high_risk_activities,
+        "failed_logins": len(failed_logins),
+        "total_activities": total_activities,
+        "security_score": max(0, 1 - (len(alerts) * 0.1) - (len(high_risk_activities) * 0.05)),
+        "threat_level": "LOW" if len(alerts) < 5 else "MEDIUM" if len(alerts) < 15 else "HIGH",
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 @api_router.post("/certificates/{cert_id}/assign")
 async def assign_certificate_to_user(
