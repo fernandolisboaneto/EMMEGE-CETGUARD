@@ -88,6 +88,7 @@ class User(BaseModel):
     email: str
     full_name: str
     role: UserRole
+    password: str
     created_by: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
