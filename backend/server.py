@@ -375,6 +375,11 @@ async def get_expiring_certificates(days: int = 30):
         "status": "active"
     }).to_list(1000)
     
+    # Convert ObjectId to string for JSON serialization
+    for cert in certificates:
+        if "_id" in cert:
+            del cert["_id"]
+    
     return [Certificate(**cert) for cert in certificates]
 
 @api_router.post("/chat")
