@@ -263,6 +263,256 @@ const Navigation = ({ activeTab, setActiveTab }) => {
   );
 };
 
+// Organization Management Component
+const OrganizationManagement = () => {
+  const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newOrganization, setNewOrganization] = useState({
+    name: '',
+    description: '',
+    cnpj: '',
+    address: '',
+    phone: '',
+    email: ''
+  });
+  const { user } = useAuth();
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await axios.get(`${API}/organizations`);
+      setOrganizations(response.data);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createOrganization = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/organizations`, newOrganization);
+      setNewOrganization({
+        name: '',
+        description: '',
+        cnpj: '',
+        address: '',
+        phone: '',
+        email: ''
+      });
+      setShowCreateForm(false);
+      fetchOrganizations();
+      alert('Organização criada com sucesso!');
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      alert('Erro ao criar organização: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Organizações</h2>
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+        >
+          🏢 Nova Organização
+        </button>
+      </div>
+
+      {showCreateForm && (
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <h3 className="text-lg font-semibold mb-4">Criar Nova Organização</h3>
+          <form onSubmit={createOrganization} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome da Organização *
+              </label>
+              <input
+                type="text"
+                value={newOrganization.name}
+                onChange={(e) => setNewOrganization({...newOrganization, name: e.target.value})}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex: Escritório Silva & Associados"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                CNPJ
+              </label>
+              <input
+                type="text"
+                value={newOrganization.cnpj}
+                onChange={(e) => setNewOrganization({...newOrganization, cnpj: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={newOrganization.email}
+                onChange={(e) => setNewOrganization({...newOrganization, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="contato@escritorio.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone
+              </label>
+              <input
+                type="text"
+                value={newOrganization.phone}
+                onChange={(e) => setNewOrganization({...newOrganization, phone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+              <textarea
+                value={newOrganization.description}
+                onChange={(e) => setNewOrganization({...newOrganization, description: e.target.value})}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Descrição da organização..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Endereço
+              </label>
+              <textarea
+                value={newOrganization.address}
+                onChange={(e) => setNewOrganization({...newOrganization, address: e.target.value})}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Endereço completo..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2"
+              >
+                Criar Organização
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h3 className="text-xl font-semibold text-white">Organizações</h3>
+        </div>
+        
+        <div className="overflow-x-auto">
+          {organizations.length === 0 ? (
+            <div className="p-8 text-center">
+              <svg className="h-16 w-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <p className="text-gray-600 text-lg">Nenhuma organização encontrada</p>
+              <p className="text-gray-500 text-sm mt-2">Clique em "Nova Organização" para começar</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Organização
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    CNPJ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contato
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Criado em
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {organizations.map((org) => (
+                  <tr key={org.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{org.name}</div>
+                        <div className="text-sm text-gray-500">{org.description}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{org.cnpj || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{org.email || '-'}</div>
+                      <div className="text-sm text-gray-500">{org.phone || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        org.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {org.is_active ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(org.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button className="text-blue-600 hover:text-blue-900 mr-2">
+                        Editar
+                      </button>
+                      <button className="text-indigo-600 hover:text-indigo-900">
+                        Gerenciar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // User Management Component
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
