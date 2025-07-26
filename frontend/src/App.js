@@ -1666,6 +1666,9 @@ const AuditManagement = () => {
     </div>
   );
 };
+
+// Sites Management Component
+const SitesManagement = () => {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
