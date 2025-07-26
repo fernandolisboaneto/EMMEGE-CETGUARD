@@ -784,46 +784,6 @@ async def create_user(
     
     return user_obj
 
-# User Management Routes
-@api_router.post("/users", response_model=User)
-async def create_user(
-    user_data: UserCreate,
-    request: Request,
-    current_user: User = Depends(get_current_user)
-):
-    """Create new user (Super Admin creates Admin, Admin creates Users)"""
-    
-    # Check permissions
-    if current_user.role == UserRole.SUPER_ADMIN and user_data.role not in [UserRole.ADMIN, UserRole.USER]:
-        raise HTTPException(status_code=403, detail="Super Admin can only create Admin or User accounts")
-    elif current_user.role == UserRole.ADMIN and user_data.role != UserRole.USER:
-        raise HTTPException(status_code=403, detail="Admin can only create User accounts")
-    elif current_user.role == UserRole.USER:
-        raise HTTPException(status_code=403, detail="Users cannot create other accounts")
-    
-    # Check if user already exists
-    existing_user = await db.users.find_one({"username": user_data.username})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # Create user
-    user_dict = user_data.dict()
-    user_dict["password"] = hash_password(user_data.password)
-    user_dict["created_by"] = current_user.id
-    
-    user_obj = User(**user_dict)
-    await db.users.insert_one(user_obj.dict())
-    
-    # Log user creation
-    await log_user_activity(
-        current_user.id,
-        ActionType.LOGIN,  # Using LOGIN as placeholder for user creation
-        request,
-        action_details={"created_user": user_obj.id, "user_role": user_data.role}
-    )
-    
-    return user_obj
-
 @api_router.get("/users", response_model=List[User])
 async def get_users(
     current_user: User = Depends(get_current_user),
