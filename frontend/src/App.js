@@ -232,6 +232,7 @@ const Navigation = ({ activeTab, setActiveTab }) => {
     { id: 'assignments', label: 'Atribuições', icon: '🔗', roles: ['super_admin', 'admin'] },
     { id: 'security', label: 'Segurança', icon: '🛡️', roles: ['super_admin', 'admin'] },
     { id: 'audit', label: 'Auditoria', icon: '📋', roles: ['super_admin', 'admin'] },
+    { id: 'ai-analysis', label: 'IA', icon: '🤖', roles: ['super_admin', 'admin'] },
     { id: 'my-access', label: 'Meus Acessos', icon: '🔑', roles: ['user'] }
   ];
 
