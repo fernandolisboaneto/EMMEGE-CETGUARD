@@ -84,6 +84,9 @@ class CertGuardAPITester:
         
         if success and 'access_token' in response:
             self.token = response['access_token']
+            print(f"DEBUG: Login successful, token: {self.token[:20]}...")
+        else:
+            print(f"DEBUG: Login failed, response: {response}")
             
         return self.log_test(
             "Super Admin Login", 
