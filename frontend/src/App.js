@@ -24,12 +24,22 @@ const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
+      console.log('Attempting login with username:', username);
+      console.log('API endpoint:', `${API}/auth/login`);
+      
       const response = await axios.post(`${API}/auth/login`, {
         username,
         password
       });
       
+      console.log('Login response:', response.data);
+      
       const { access_token, user: userData } = response.data;
+      
+      if (!access_token || !userData) {
+        console.error('Invalid response format:', response.data);
+        return { success: false, error: 'Invalid response format' };
+      }
       
       setToken(access_token);
       setUser(userData);
@@ -39,9 +49,11 @@ const AuthProvider = ({ children }) => {
       
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
+      console.log('Login successful, user:', userData);
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
