@@ -365,8 +365,9 @@ class CertGuardAPITester:
 
     def run_all_tests(self) -> int:
         """Run all API tests"""
-        print("🚀 Starting CertGuard AI v2.0 Backend API Tests")
-        print("=" * 60)
+        print("🚀 Starting CertGuard AI v2.0 CORE Backend API Tests")
+        print("Testing: Certificate Import, Assignments, Security Dashboard, AI Analysis, Audit Trail")
+        print("=" * 80)
         
         # Core API tests
         self.test_root_endpoint()
@@ -385,28 +386,46 @@ class CertGuardAPITester:
         # Dashboard and admin tests
         self.test_admin_dashboard()
         
-        # Tribunal sites tests
+        # Tribunal sites tests (must run before assignments)
         self.test_initialize_tribunal_sites()
         self.test_get_tribunal_sites()
         
-        # Certificate management tests
-        self.test_create_certificate()
-        self.test_assign_certificate()
+        # CORE FEATURE TESTS
+        print("\n🔥 Testing CORE Features:")
+        print("-" * 40)
         
-        # Security and audit tests
+        # 1. Certificate Import
+        self.test_certificate_import()
+        
+        # 2. Certificate Assignments
+        self.test_certificate_assignment_full()
+        self.test_get_certificate_assignments()
+        
+        # 3. Security Dashboard
+        self.test_security_dashboard()
+        
+        # 4. AI Analysis (3 types)
+        self.test_ai_analysis_behavior()
+        self.test_ai_analysis_certificate()
+        self.test_ai_analysis_security()
+        
+        # 5. Audit Trail
         self.test_security_alerts()
         self.test_user_audit_trail()
+        
+        # Additional tests
+        self.test_user_accessible_sites()
         self.test_container_access()
         
         # Logout test
         self.test_logout()
         
         # Print results
-        print("=" * 60)
+        print("=" * 80)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} tests passed")
         
         if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed! CertGuard AI v2.0 backend is working correctly.")
+            print("🎉 All CORE tests passed! CertGuard AI v2.0 backend is working correctly.")
             return 0
         else:
             print(f"⚠️  {self.tests_run - self.tests_passed} tests failed. Check the issues above.")
